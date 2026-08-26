@@ -1,0 +1,14 @@
+program,delta_moranI,p_perm,n,p_BH
+score_Cytotoxicity,0.03403760364460184,0.3125,6,1.0
+rna_T_cells,-0.049406105093163004,0.5,6,1.0
+score_Fibroblast_activation,0.16039494151096348,0.5,6,1.0
+score_Hypoxia,0.02329915364383349,0.5625,6,1.0
+rna_epithelial_tumour,0.11691687187842088,0.625,6,1.0
+score_Angiogenesis,0.049884045605324306,0.75,6,1.0
+score_EMT,0.11402046908676244,0.75,6,1.0
+score_T_cell_activity,0.014839391313049344,0.8125,6,1.0
+score_Proliferation,-0.009083312075529386,1.0,6,1.0
+score_B_cell_activity,-0.03232022720820943,1.0,6,1.0
+score_Estrogen_response,0.04482849907870534,1.0,6,1.0
+score_Myeloid_inflammation,0.0231281233742856,1.0,6,1.0
+score_Interferon_response,-0.012471073964706305,1.0,6,1.0

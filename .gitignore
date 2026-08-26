@@ -1,0 +1,27 @@
+# --- large data: NOT committed (see data/README.md for fetch instructions) ---
+data/*
+
+# keep the data manifest
+!data/README.md
+
+# --- run artifacts ---
+logs/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# --- temp / scratch ---
+tmp/
+*_tmp/
+*.tmp
+/tmp/
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
