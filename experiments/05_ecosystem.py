@@ -37,7 +37,9 @@ from scipy.optimize import nnls
 from scipy.sparse import issparse
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from srx import PROC_DIR, FIG_DIR, TABLE_DIR, SAMPLE_META, PROGRAMS, MARKERS
+from spatialrx.norm import clr_protein, nnls_proportions
 
 sc.settings.verbosity = 0
 os.makedirs(FIG_DIR, exist_ok=True)
@@ -70,36 +72,6 @@ def lognorm_matrix(ad, genes):
         X = X.toarray()
     X = np.asarray(X, dtype=np.float64)
     return X, genes
-
-
-def clr_protein(prot):
-    """Winsorize top/bottom 5% per protein (across spots), then per-spot CLR."""
-    prot = np.asarray(prot, dtype=np.float64)
-    n = prot.shape[0]
-    if n == 0:
-        return prot
-    k = max(1, int(n * 0.05))
-    for j in range(prot.shape[1]):
-        x = prot[:, j]
-        if x.max() == 0:
-            continue
-        lo, hi = np.sort(x)[k], np.sort(x)[n - 1 - k]
-        x = np.clip(x, lo, hi)
-        prot[:, j] = x
-    prot = prot + 1.0
-    gmean = np.exp(np.log(prot).mean(axis=1, keepdims=True))
-    return np.log(prot / gmean)
-
-
-def nnls_proportions(X, S, lineage_names):
-    """Solve argmin ||X_i - S p_i||, p >= 0, per spot; returns n_spots x n_lineage."""
-    S = S / (S.sum(axis=0, keepdims=True) + 1e-12)  # signature columns ~ comparable scale
-    P = np.zeros((X.shape[0], S.shape[1]))
-    for i in range(X.shape[0]):
-        sol, _ = nnls(S, X[i])
-        tot = sol.sum()
-        P[i] = sol / tot if tot > 0 else 0
-    return pd.DataFrame(P, columns=lineage_names)
 
 
 def process_sample(specimen):

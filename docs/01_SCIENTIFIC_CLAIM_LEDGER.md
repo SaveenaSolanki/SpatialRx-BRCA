@@ -129,3 +129,36 @@ inflated by ≈2× relative to the correct exact value. This does not change the
 **Bottom line:** the report is largely faithful to its own output tables, but six claims have
 provenance or validity problems, and two of them (C18 permutation p, C25 niche AUROC) touch
 headline conclusions. All are fixable without changing the underlying data.
+
+---
+
+## I. Remediation updates — branch `fix/repro-correctness-v1`
+
+Baseline for comparison: `47052bd` (frozen Phase-0 audit).
+
+### Gate 1 — reproducibility (no claim changes)
+
+- Canonical environment pinned (`environment.yml`, `requirements.lock`); h5ad writes now work.
+- `spatialrx validate-data` passes 31/31 checks (strict, sha256 verified); `reproduce --smoke` passes.
+- Found and fixed a latent metadata bug: `patient_of` used dash-field index 3 and returned the
+  section token (e.g. `S2_D`) instead of the patient. Unused by the old scripts; now covered by a
+  regression test. No reported claim depended on it.
+
+### Gate 2 — statistical correctness (claims changed)
+
+| Claim | Before (committed table) | After (corrected) | Reason |
+|---|---|---|---|
+| C18 B-cell paired trend p | `p_perm = 0.1875` | **0.09375** | `exact_perm_paired` double-counted both tails (`2·s/N`); correct exact two-sided p is `s/N`. The report prose already quoted 0.094, so the table now matches the text. |
+| C17/C21 all `07_paired_tests` p | each `2·s/N` | each `s/N` | same fix; all deltas unchanged; no metric becomes BH-significant (`p_perm_BH` min 0.900). |
+| C20 program Moran p | each `2·s/N` | each `s/N` | same fix; BH now uses a proper monotone step-up (`p_BH` min 0.660); no program change is significant. |
+| C31 CSF1–CSF1R Δ+0.33 | `p = 0.0` (table) | **0.125** | The committed `0.0` is impossible for an exact two-sided sign-flip test (the observed sign vector is always in the null set); the committed script actually yields 0.25, and the corrected value is 0.125. The stored table was **not reproducible** from the committed code (provenance defect). |
+| C31 TGFB1–TGFBR1 Δ+0.28 | `p = 0.0` | **0.125** | same. |
+| C31 LR paired tests | no correction | added `p_BH` column | multiple-testing correction was absent; all BH values ≥ 0.81. |
+
+**Unchanged by remediation:** every effect-size / delta in modules 07 and 10, all `07_paired_metrics`
+values, all program Moran's I values (to floating precision), and the overall conclusion that no
+paired pre/post change survives multiple-testing correction at n = 6. The `10_lr` deltas are
+unchanged; only their p-values were corrected.
+
+Pending (post-Gate 4 reconciliation): C10 marker count (26 vs 27), C12 protein-FDR range (30–35),
+C21 metric count (24 not 22), C25 niche-AUROC validity, C15 isotype robustness removal.

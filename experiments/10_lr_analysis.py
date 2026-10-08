@@ -27,7 +27,9 @@ import scanpy as sc
 import squidpy as sq
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from srx import PROC_DIR, FIG_DIR, TABLE_DIR, SAMPLE_META, PAIRED
+from spatialrx.stats import exact_perm_paired, bh_fdr
 
 sc.settings.verbosity = 0
 os.makedirs(FIG_DIR, exist_ok=True)
@@ -143,21 +145,14 @@ def main():
     print("\n[m10] top interaction scores at tumour-immune interface (mean score):")
     print(summ.head(20).round(3).to_string(index=False))
 
-    # paired deltas per pair (exact permutation as module 7)
+    # paired deltas per pair (exact sign-flip test, shared implementation)
     def paired_delta(sub):
         d = sub.pivot_table(index="patient", columns="treatment",
                             values="interface_score").dropna()
         if len(d) < 3 or "pre" not in d or "post" not in d:
             return None
         dv = (d["post"] - d["pre"]).to_numpy()
-        obs = dv.mean()
-        n = len(dv)
-        s = 0
-        for bits in range(2 ** n):
-            signs = np.array([1 if (bits >> i) & 1 else -1 for i in range(n)])
-            if abs((signs * dv).mean()) >= abs(obs):
-                s += 1
-        p = min(1.0, 2 * s / 2 ** n)
+        obs, p = exact_perm_paired(dv)
         return obs, p, len(dv)
 
     tpairs = []
@@ -167,6 +162,7 @@ def main():
             tpairs.append({"ligand": lig, "receptor": rec, "category": cat,
                            "delta": r[0], "p_perm": r[1], "n": r[2]})
     tp = pd.DataFrame(tpairs).sort_values("p_perm")
+    tp["p_BH"] = bh_fdr(tp["p_perm"].to_numpy(dtype=float)) if len(tp) else []
     tp.to_csv(os.path.join(TABLE_DIR, "10_lr_paired_tests.csv"), index=False)
     print("\n[m10] paired pre->post interface-score tests:")
     print(tp.head(12).round(3).to_string(index=False))

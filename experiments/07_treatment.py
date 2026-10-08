@@ -32,7 +32,9 @@ import squidpy as sq
 from scipy import stats
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from srx import PROC_DIR, FIG_DIR, TABLE_DIR, SAMPLE_META, PAIRED, MARKERS, PROGRAMS
+from spatialrx.stats import exact_perm_paired, bh_fdr
 
 sc.settings.verbosity = 0
 os.makedirs(FIG_DIR, exist_ok=True)
@@ -126,27 +128,6 @@ def lineage_nhood(ad):
         return None
 
 
-def exact_perm_paired(d):
-    """Exact permutation test for paired mean (n=6); two-sided."""
-    d = np.asarray(d, float)
-    d = d[~np.isnan(d)]
-    if len(d) < 3:
-        return np.nan, np.nan
-    n = len(d)
-    obs = d.mean()
-    s = 0
-    total = 0
-    # enumerate sign flips (2^n); exact two-sided for n<=6
-    for bits in range(2 ** n):
-        signs = np.array([1 if (bits >> i) & 1 else -1 for i in range(n)])
-        if abs(float((signs * d).mean())) >= abs(float(obs)):
-            s += 1
-        total += 1
-    p = 2 * s / total
-    p = min(p, 1.0)
-    return obs, p
-
-
 def main():
     # ---- metric table for paired sections ----
     rows = []
@@ -178,9 +159,8 @@ def main():
                       "p_wilcoxon": p_wil, "effect_size": es,
                       "n": len(pre), "pre_mean": pre.mean(), "post_mean": post.mean()})
     tests = pd.DataFrame(tests)
-    # BH correction across metrics
-    tests["p_perm_BH"] = tests["p_perm"].apply(
-        lambda p: min(1.0, p * len(tests) / max(1, (tests["p_perm"] <= p).sum())))
+    # BH correction across metrics (exact step-up, monotonicity enforced)
+    tests["p_perm_BH"] = bh_fdr(tests["p_perm"].to_numpy(dtype=float))
     tests = tests.sort_values("p_perm")
     tests.to_csv(os.path.join(TABLE_DIR, "07_paired_tests.csv"), index=False)
     print("\n[m7] paired pre->post tests (n=6 patients; permutation p, BH-corrected):")
@@ -316,8 +296,7 @@ def main():
         rows_t.append({"program": prog, "delta_moranI": obs, "p_perm": p,
                        "n": len(d)})
     mt = pd.DataFrame(rows_t).sort_values("p_perm")
-    mt["p_BH"] = mt["p_perm"].apply(
-        lambda p: min(1.0, p * len(mt) / max(1, (mt["p_perm"] <= p).sum())))
+    mt["p_BH"] = bh_fdr(mt["p_perm"].to_numpy(dtype=float))
     mt.to_csv(os.path.join(TABLE_DIR, "07_program_morans_paired_tests.csv"), index=False)
     print("\n[m7] paired tests on spatial-structure (Moran's I) change post-pre:")
     print(mt.round(3).to_string(index=False))
