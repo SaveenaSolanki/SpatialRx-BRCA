@@ -1,0 +1,19 @@
+# CITEgeist / modern compatibility environment (pip view)
+#
+# ISOLATED from the canonical environment. This stack (citegeist + cuOPT +
+# cudf/RAPIDS) forces pandas 3.x and a much newer numpy, which breaks the pinned
+# canonical set. Use it ONLY for the CITEgeist QP cross-check, never to produce
+# canonical figures/tables.
+#
+# Suggested creation (separate prefix):
+#   conda create -p /storage2/savi/conda/envs/spatialrx-citegeist python=3.11 pip -y
+#   conda run -p /storage2/savi/conda/envs/spatialrx-citegeist \
+#       pip install citegeist==2.0.1 anndata pandas numpy scanpy
+#   # cuopt comes from the NVIDIA index (see logs/citegeist_setup.log)
+#
+# The versions below are the ones observed in the drifted development env on
+# 2026-08-26 and are recorded for provenance, not as a recommendation.
+citegeist==2.0.1
+anndata==0.12.19
+pandas==3.0.3
+numpy==2.4.6

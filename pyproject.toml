@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "spatialrx-brca"
+version = "0.2.0"
+description = "Reproducibility and analysis toolkit for SpatialRx-BRCA (GSE289326)"
+readme = "README.md"
+requires-python = ">=3.11,<3.12"
+license = { text = "MIT" }
+authors = [{ name = "Saveena Solanki" }]
+# Runtime dependencies are managed explicitly by the two environment files:
+#   environment.yml            -> canonical reproduction environment
+#   environment/requirements-canonical.txt + requirements.lock
+#   environment/requirements-citegeist.txt  -> isolated CITEgeist/modern env
+dependencies = []
+
+[project.scripts]
+spatialrx = "spatialrx.cli:main"
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "pytest-cov>=5.0"]
+
+[tool.setuptools]
+packages = ["spatialrx"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = ["ignore::FutureWarning", "ignore::SyntaxWarning", "ignore::DeprecationWarning"]

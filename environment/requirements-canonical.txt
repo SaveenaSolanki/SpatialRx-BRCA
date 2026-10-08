@@ -1,0 +1,35 @@
+# Canonical Python dependencies (pip view) — keep in sync with environment.yml.
+#
+# Version evidence (from repository artifacts, before remediation):
+#   exact:      python 3.11.15, scanpy 1.11.5, squidpy 1.8.2, decoupler 2.2.0,
+#               torch 2.5.1+cpu  (logs/env_setup.log, PLAN.md, report §5)
+#   constrained: numpy < 2.2      (README.md)
+#   inferred:   anndata 0.12.19, pandas 2.x  (the CITEgeist install on 2026-08-26
+#               bumped pandas to 3.0.3 while anndata stayed 0.12.19 — see
+#               logs/citegeist_setup.log; the h5ad files were therefore written
+#               with anndata 0.12.x + pandas 2.x, which is why h5ad writing works
+#               on pandas 2.x but fails on pandas 3.x)
+#   closest-supported: remaining pins chosen for mutual compatibility with the
+#               exact/inferred set.
+#
+# Install:  pip install -r environment/requirements-canonical.txt
+numpy==2.1.3
+scipy==1.15.3
+pandas==2.2.3
+anndata==0.12.19
+scanpy==1.11.5
+squidpy==1.8.2
+decoupler==2.2.0
+scikit-learn==1.6.1
+statsmodels==0.14.6
+matplotlib==3.10.0
+seaborn==0.13.2
+harmonypy==2.0.0
+scikit-misc==0.5.1
+leidenalg==0.10.2
+igraph==0.11.8
+numba==0.61.0
+h5py==3.13.0
+zarr==3.1.6
+numcodecs==0.16.5
+pillow==11.1.0

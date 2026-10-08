@@ -1,0 +1,8 @@
+# CPU-only PyTorch for the canonical environment.
+# Must be installed from the PyTorch CPU wheel index to avoid pulling the CUDA
+# stack. Run after installing requirements-canonical.txt:
+#
+#   pip install -r environment/requirements-torch-cpu.txt
+#
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.5.1+cpu
