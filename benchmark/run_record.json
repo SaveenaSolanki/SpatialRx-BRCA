@@ -1,0 +1,33 @@
+{
+  "runtime_s": 463.8,
+  "analyses": [
+    "section"
+  ],
+  "seeds": [
+    0,
+    1
+  ],
+  "methods": [
+    "pca",
+    "smoothing",
+    "random",
+    "rna_ae",
+    "rna_protein_ae",
+    "graph_ae",
+    "graph_ae_randomized"
+  ],
+  "jobs": 6,
+  "n_sections": 14,
+  "n_folds": 14,
+  "outputs": [
+    "BENCHMARK_CONTRACT.md",
+    "ablation_results.csv",
+    "negative_controls.csv",
+    "negative_controls_summary.csv",
+    "results_auroc.csv",
+    "results_embedding.csv",
+    "split_manifest.csv",
+    "stability.csv",
+    "summary.csv"
+  ]
+}

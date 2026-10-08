@@ -25,3 +25,5 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+# benchmark per-fold checkpoints (resumable intermediates)
+benchmark/folds/
