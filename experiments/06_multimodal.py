@@ -1,11 +1,13 @@
 """
 Module 06 — Multi-omics: RNA vs protein agreement per spatial spot.
-For ~27 matched gene/antibody pairs (e.g. CD3E RNA vs CD3 protein):
+For ~26 analysable matched gene/antibody pairs (27 configured; HLA-DRA is unmatched
+because its protein feature name has no "-1" suffix; e.g. CD3E RNA vs CD3 protein):
   - per-sample Pearson r across spots (RNA log-CPM vs CLR protein)
   - per-spot discordance score (zRNA - zProtein), tested for spatial structure
     via Moran's I on the grid graph (is disagreement itself spatially organised?)
-  - robustness check: protein normalised with the study's isotype-normalisation
-    factors (alternative to plain CLR)
+  - NOTE: only per-spot CLR is used. The isotype-normalisation branch is not
+    implemented (the helper is dead code and a per-spot factor cancels under CLR),
+    so it is not claimed as a robustness check.
 Outputs: tables + figures incl. discordance maps.
 
 Usage: conda run -n spatialrx python experiments/06_multimodal.py
@@ -56,7 +58,12 @@ def rna_cpm(ad_counts, gene):
 
 
 def clr_by_factor(prot_counts, factors, pnames):
-    """Alternative protein normalisation using isotype factors (multiplicative)."""
+    """Unused alternative protein normalisation using isotype factors.
+
+    NOTE: never called anywhere in the pipeline. A per-spot multiplicative factor
+    cancels under CLR, so this is not a valid robustness check; kept only for
+    provenance.
+    """
     prot = np.asarray(prot_counts, float)
     f = np.asarray(factors[factors["barcode"].isin([])], float)  # placeholder
     fac = np.ones(prot.shape[0])

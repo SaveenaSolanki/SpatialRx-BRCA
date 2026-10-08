@@ -90,7 +90,10 @@ genes per section.
   **PROGENy was NOT run** — decoupler 2.x removed the PROGENy/resource API (documented
   deviation; curated MSigDB-inspired programs used instead).
 - Protein layer: winsorized (5%) + per-spot CLR (per CITEgeist methods); stored as
-  `obsm["protein_clr"]`; isotype-factor alternative available (`isotype_normalization_factors.csv`).
+  `obsm["protein_clr"]`. **Only per-spot CLR was applied.** The isotype-factor alternative
+  (`isotype_normalization_factors.csv`) is *not* implemented (the helper is dead code: a
+  per-spot multiplicative factor cancels under CLR), so no isotype-normalised robustness
+  analysis is claimed.
 - Transparent NNLS deconvolution (scipy.optimize.nnls), RNA (33 marker genes, 6 lineages)
   and protein (31 antibodies, 8 lineages) panels; proportions per spot in
   `rna_<lineage>` / `prot_<lineage>` obs columns.
@@ -102,7 +105,7 @@ Figures: `05_program_maps_P4S2.png`, `05_cellstate_maps_P4S2.png`,
 `05_cellstate_prot_maps_P4S2.png`.
 
 ### Module 6 — Multi-omics: do RNA and protein tell the same story?
-Per-spot correlations (RNA log-CPM vs CLR protein) for 27 matched gene/antibody pairs.
+Per-spot correlations (RNA log-CPM vs CLR protein) for **26** analysable matched gene/antibody pairs (27 configured; `HLA-DRA` is unmatched because its protein feature name has no `-1` suffix).
 
 - **Agreement is modest and marker-dependent** (median Pearson r across 14 sections;
   `06_rna_protein_agreement.csv`): ACTA2 0.19, VIM 0.14, EPCAM 0.12, BCL2 0.11, CD68 0.10,
@@ -114,8 +117,8 @@ Per-spot correlations (RNA log-CPM vs CLR protein) for 27 matched gene/antibody 
   Discordance maps: `06_discordance_maps_P4S2.png`; scatter examples `06_scatter_examples_P4S2.png`.
 
 ### Module 6b — Protein (antibody) spatial structure
-Moran's I of CLR proteins per section: **34–35 of 35 proteins spatially structured
-(FDR<0.05) in every section**. Top proteins: VIM 0.69, ACTA2/SMA 0.67, KRT5 0.63, BCL2
+Moran's I of CLR proteins per section: **30–35 of 35 proteins spatially structured
+(FDR<0.05) per section (median 35/35; 9/14 sections at 35/35; lowest P4-S1 = 30/35)**. Top proteins: VIM 0.69, ACTA2/SMA 0.67, KRT5 0.63, BCL2
 0.56, HLA-DRA 0.55, CD68 0.52, EPCAM 0.46, CD3E 0.42. Validation vs authors' table:
 **r = 0.69 across matched protein entries** (`06b_protein_morans.csv`,
 `06b_protein_spatial.png`). The protein layer is *more* structured than the transcript
@@ -128,8 +131,9 @@ immune neighbour), neighbourhood enrichment, program Moran's I.
 Statistics: paired per-patient deltas; **exact two-sided permutation tests** (sign flips,
 2^6) + Wilcoxon signed-rank; BH across metrics.
 
-- **No metric survives multiple-testing correction at n=6** (22 metrics; `07_paired_tests.csv`).
-- Uncorrected trends: B-cell activity +0.086 (p_perm 0.094, ES 1.24); tumour spots/section
+- **No metric survives multiple-testing correction at n=6** (24 metrics; `07_paired_tests.csv`;
+  `p_perm` is the corrected exact two-sided sign-flip value with a BH step-up; minimum BH 0.900).
+- Uncorrected trends: B-cell activity +0.086 (corrected p_perm = 0.094 = 6/64, ES 1.24; Wilcoxon p = 0.094); tumour spots/section
   +670 (p 0.125, ES 1.51); ESR1 within tumour +1.69 log-CPM (n=3 pairs only; P1/P2/P4);
   **tumour–immune contact −0.40 (ES −1.88, n=3 pairs)** — directionally, residual tumour in
   post-surgical samples is *less* immune-adjacent; immune fraction −0.088.

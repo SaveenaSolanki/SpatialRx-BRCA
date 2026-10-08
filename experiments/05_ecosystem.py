@@ -3,8 +3,9 @@ Module 05 — From genes to biological programs: the cell ecosystem.
 Sections:
   A. Per-spot gene-program scores (curated programs + lineage signatures) via
      scanpy.score_genes on log-normalized RNA.
-  B. Protein layer: winsorize + CLR normalization (per CITEgeist methods), plus
-     isotype-factor alternative; stores obsm['protein_clr'].
+  B. Protein layer: winsorize + CLR normalization (per CITEgeist methods);
+     only per-spot CLR is implemented (the isotype-factor alternative is absent).
+     Stores obsm['protein_clr'].
   C. Cell-state deconvolution:
        - RNA-based NNLS against a marker-signature matrix (6 lineages)
        - Protein-based NNLS against the 10x Immuno-Oncology antibody panel

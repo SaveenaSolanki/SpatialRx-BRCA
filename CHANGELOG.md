@@ -36,7 +36,7 @@
   M2/exhaustion/hypoxia scores don't drive it. Fixed pandas-3 method-shadowing bug
   (df.sample) and edge metric (BFS -> 6-degree exposure).
 - Module 10 (LR at interfaces): MIF-CD74, MDK-LRP1 top; CXCL12-CXCR4 down 5.5->2.8 post;
-  CSF1-CSF1R +0.33, TGFB1-TGFBR1 +0.28 (n=4 pairs, p=0.000 exact).
+  CSF1-CSF1R +0.33, TGFB1-TGFBR1 +0.28 (n=4 pairs; corrected exact two-sided p=0.125).
 - Module 12 (matched-region subsampling): tumour-immune contact decrease survives
   size-matching (random subsample median -0.50, 0/200 positive; contiguous -0.43 ~80%
   negative); other effects compatible with noise.
@@ -44,3 +44,15 @@
   modules 00-08 predate this (README pins for exact reproduction).
 - Deliverables: outputs/SpatialRx-BRCA_next_steps.md; report §7 updated; README table
   updated.
+
+## 2026-10-08 — Stage A claim reconciliation (documentation-only)
+- Corrected claims to match committed/regenerated artefacts (no results or computational
+  code changed; see docs/05_CLAIM_RECONCILIATION_STAGE_A.md):
+  * C10: Module 06 analyses 26 matched markers, not 27 (HLA-DRA unmatched).
+  * C12: Module 06b protein FDR range is 30–35/35 per section (9/14 at 35/35), not 34–35.
+  * C21: Module 07 tests 24 metrics, not 22.
+  * C18: B-cell trend uses the corrected exact two-sided p_perm = 0.09375 (=6/64).
+  * C31: CSF1-CSF1R / TGFB1-TGFBR1 corrected exact p_perm = 0.125 (committed table's
+    0.0 was unreproducible; BH-adjusted 0.81 across all 26 LR pairs).
+  * C15: isotype-factor robustness claim removed — only per-spot CLR is implemented
+    (the helper is dead code); no isotype-normalised sensitivity analysis was run.

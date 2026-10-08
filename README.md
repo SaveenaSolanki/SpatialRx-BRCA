@@ -46,7 +46,7 @@ pip install torch --index-url https://download.pytorch.org/whl/cpu   # CPU is en
 | 03 | `03_tumor_heterogeneity.py` | per-section clustering + auditable domain annotation; harmony-corrected merged atlas | `03_domains/*.h5ad`, `atlas_merged.h5ad`, tables |
 | 04 | `04_spatial_stats.py` | grid neighbour graphs, Moran's I for all genes, SVG ranking, **validation vs authors' Moran's I** | `04_*` tables/figures |
 | 05 | `05_ecosystem.py` | gene-program scores; protein CLR normalisation; transparent NNLS deconvolution (RNA + protein); neighbourhood enrichment | `05_ecosystem/*.h5ad`, tables, figures |
-| 06 | `06_multimodal.py` | per-spot RNA vs protein agreement for 27 matched markers; spatial structure of discordance | `06_*` tables/figures |
+| 06 | `06_multimodal.py` | per-spot RNA vs protein agreement for 26 analysable matched markers (27 configured; HLA-DRA unmatched); spatial structure of discordance | `06_*` tables/figures |
 | 07 | `07_treatment.py` | paired pre/post analyses (compartments, programs, ESR1, tumour–immune contact, neighbourhoods, Moran's I shifts); exact permutation tests | `07_*` tables/figures |
 | 08 | `08_ai.py` | RNA-only vs RNA+protein vs RNA+protein+graph embeddings (small MLP/GCN autoencoders); silhouette / spatial-coherence / niche-separation metrics | `08_*` tables/figures |
 | 06b | `06b_protein_spatial.py` | Moran's I of the protein layer; validation vs authors' antibody enrichment | `06b_*` |

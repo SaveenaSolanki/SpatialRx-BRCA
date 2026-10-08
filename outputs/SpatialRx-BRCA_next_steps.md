@@ -96,9 +96,9 @@ versa; interaction score = mean(sender ligand) × mean(receiver receptor) (log-C
 - Interface vs non-interface enrichment (pre): CXCL12–CXCR4 ×1.95, LGALS9–HAVCR2 ×1.65,
   VEGFA–KDR ×5.2 — chemokine/checkpoint axes concentrated at the tumour–immune interface.
 - Paired pre→post changes (n=4 patients with interface data: P1/P2/P4/P5): CSF1–CSF1R
-  (tumour→myeloid) Δ+0.33, TGFB1–TGFBR1 Δ+0.28 (both p=0.000 in exact sign-flip tests,
-  n=4); CXCL12–CXCR4 decreases −2.74 across the cohort mean. Hypothesis-generating only
-  (no multiple-testing correction, n=4).
+  (tumour→myeloid) Δ+0.33, TGFB1–TGFBR1 Δ+0.28 (both corrected p_perm = 0.125 in exact
+  two-sided sign-flip tests, n=4; BH-adjusted p = 0.81 across all 26 pairs); CXCL12–CXCR4
+  decreases −2.74 across the cohort mean. Hypothesis-generating only (n=4).
 - Figure: `10_lr_interface_prepost.png`, `10_interface_map_P4S2.png`.
 
 ## 4. Matched-region subsampling for the treatment tests (Module 12)
