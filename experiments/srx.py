@@ -129,7 +129,9 @@ TREATMENT_COLORS = {"pre": "#1f77b4", "post": "#d62728"}
 
 
 def patient_of(specimen: str) -> str:
-    return specimen.split("-")[3]
+    # NOTE: previously used index 3, which returned the section token
+    # (e.g. "S2_D"). The patient is the 3rd dash-separated field.
+    return specimen.split("-")[2]
 
 
 def treatment_of(specimen: str) -> str:

@@ -55,7 +55,7 @@ DOMAIN_PALETTE = {
 }
 
 
-def cluster_zscore_table(ad):
+def cluster_zscore_table(ad, cluster_key="leiden"):
     """Mean z-scored log-normalized expression of lineage markers per cluster."""
     genes = sorted({g for gs in DOMAIN_RULES.values() for g in gs})
     genes = [g for g in genes if g in ad.raw.var_names]
@@ -64,14 +64,14 @@ def cluster_zscore_table(ad):
         X = X.toarray()
     X = np.log1p(X / X.sum(axis=1, keepdims=True) * 1e4)
     df = pd.DataFrame(X, index=ad.obs_names, columns=genes)
-    cl = ad.obs["leiden"].astype(str)
+    cl = ad.obs[cluster_key].astype(str)
     mean = df.groupby(cl).mean()
     z = (mean - mean.mean()) / mean.std().replace(0, np.nan)
     return z
 
 
-def annotate_domains(ad, sample):
-    z = cluster_zscore_table(ad)
+def annotate_domains(ad, sample, cluster_key="leiden"):
+    z = cluster_zscore_table(ad, cluster_key)
     rule_scores = {}
     for dom, genes in DOMAIN_RULES.items():
         gs = [g for g in genes if g in z.columns]
@@ -93,7 +93,7 @@ def annotate_domains(ad, sample):
         sel = comp_choice == c
         cands = [d for d, cc in COMPARTMENT.items() if cc == c]
         dom.loc[sel] = rs.loc[sel, cands].idxmax(axis=1)
-    ad.obs["domain"] = dom.loc[ad.obs["leiden"].astype(str)].to_numpy()
+    ad.obs["domain"] = dom.loc[ad.obs[cluster_key].astype(str)].to_numpy()
     ad.obs["compartment"] = ad.obs["domain"].map(COMPARTMENT).fillna("Mixed")
     out = pd.DataFrame({"sample": sample, "leiden": dom.index, **rs.to_dict("list")})
     return out
@@ -133,25 +133,60 @@ def per_sample_pipeline():
 
 
 def merged_atlas():
+    """Build the Harmony-integrated atlas from the per-sample domains objects.
+
+    Fixes two defects in the original implementation:
+      1. ``anndata.concat`` was called without ``keys``, so ``obs['section']``
+         (and therefore the copied ``obs['sample']``) was the integer batch index
+         0..13 instead of the specimen name.
+      2. the atlas was concatenated on the *scaled* ``.X`` and then ``raw`` was
+         set to that scaled matrix, so the rule-based annotation ran on scaled
+         values.  We now concatenate the full-gene log-normalised matrix
+         (``.raw``) and annotate with the atlas-level Leiden clusters.
+    """
     import anndata
-    ads = []
+    import scipy.sparse as sp
+
+    ads, keys = [], []
     for _, m in SAMPLE_META.iterrows():
         ad = sc.read_h5ad(os.path.join(OUT, f"{m.specimen}_domains.h5ad"))
-        ads.append(ad)
-    ad = anndata.concat(ads, join="outer", index_unique="_", label="section")
-    ad.obs = ad.obs.drop(columns=["batch"], errors="ignore")
-    ad.obs["sample"] = ad.obs["section"]
-    # outer join fills missing genes with NaN; convert to explicit zeros + sparse
-    import scipy.sparse as sp
-    ad.X = sp.csr_matrix(np.nan_to_num(ad.X))
+        if ad.raw is None:
+            raise RuntimeError(f"{m.specimen}: domains object has no .raw lognorm matrix")
+        log = ad.raw.to_adata()  # full-gene log-normalised expression
+        for col in ["sample", "patient", "treatment", "gsm",
+                    "array_row", "array_col", "in_tissue"]:
+            if col in ad.obs:
+                log.obs[col] = ad.obs[col].to_numpy()
+        # keep the per-sample annotation under explicit column names
+        for col in ["domain", "compartment"]:
+            if col in ad.obs:
+                log.obs[f"{col}_sample"] = ad.obs[col].astype(str).to_numpy()
+        ads.append(log)
+        keys.append(m.specimen)
+
+    ad = anndata.concat(ads, join="outer", index_unique="_", label="section", keys=keys)
+    # sample IDs must be the specimen names, never integer batch indices
+    ad.obs["sample"] = ad.obs["section"].astype(str)
+    got = set(ad.obs["sample"].unique())
+    if got != set(keys):
+        raise RuntimeError(f"atlas sample IDs mismatch: {sorted(got)} != {sorted(keys)}")
+
+    # outer join introduces NaN for genes absent from a section -> explicit 0
+    X = ad.X
+    if sp.issparse(X):
+        X = X.tocsr().copy()
+        X.data = np.nan_to_num(X.data)
+    else:
+        X = np.nan_to_num(np.asarray(X))
+    ad.X = X
     ad.layers.clear()
-    # recompute var flags
     ad.var["hvg_seurat"] = ad.var.get("highly_variable", False)
-    ad.layers["lognorm"] = ad.X.copy()
-    ad.raw = ad
-    hvg = sc.pp.highly_variable_genes(ad, n_top_genes=3000, flavor="seurat",
+    ad_full = ad  # full-gene log-normalised expression (kept for annotation)
+
+    hvg = sc.pp.highly_variable_genes(ad_full, n_top_genes=3000, flavor="seurat",
                                       n_bins=20, inplace=False)
-    ad = ad[:, hvg["highly_variable"]].copy()
+    ad = ad_full[:, hvg["highly_variable"]].copy()
+    ad.raw = ad_full  # marker-based annotation needs all genes
     sc.pp.scale(ad, max_value=10)
     sc.tl.pca(ad, n_comps=30, svd_solver="arpack")
     try:
@@ -169,13 +204,14 @@ def merged_atlas():
     sc.tl.umap(ad)
     sc.tl.leiden(ad, resolution=0.9, flavor="igraph", n_iterations=2,
                  directed=False, key_added="leiden_atlas")
-    # atlas-level annotation via same rules (on shared clusters)
-    ztab = annotate_domains(ad, "atlas")
+    # atlas-level annotation on the atlas clusters (not per-sample leiden)
+    annotate_domains(ad, "atlas", cluster_key="leiden_atlas")
     ad.obs["domain_atlas"] = ad.obs["domain"]
     ad.obs["compartment_atlas"] = ad.obs["compartment"]
     ad.uns["domain_colors"] = DOMAIN_PALETTE
     ad.write(os.path.join(OUT, "atlas_merged.h5ad"))
     print("[m3] atlas saved:", ad.shape)
+    print("[m3] atlas compartments:", ad.obs["compartment"].value_counts().to_dict())
 
     # figure: atlas UMAP by sample/treatment/compartment
     fig, axes = plt.subplots(1, 3, figsize=(18, 5.5))
@@ -196,17 +232,28 @@ def merged_atlas():
 
 
 def domain_composition_table(ad):
-    tab = ad.obs.groupby(["sample", "patient", "treatment", "compartment"]).size()
-    tab = tab.unstack(fill_value=0)
+    # observed=True: only real sample/patient/treatment/compartment combinations
+    # (the categorical groupby otherwise emits the full cartesian product)
+    tab = (ad.obs.groupby(["sample", "patient", "treatment", "compartment"],
+                          observed=True)
+           .size().unstack(fill_value=0))
     tab = tab.div(tab.sum(axis=1), axis=0)
     tab.to_csv(os.path.join(TABLE_DIR, "03_domain_composition_fractions.csv"))
     print("\n[m3] mean compartment fraction by treatment (of analysed spots):")
-    print(tab.groupby("treatment").mean().round(3).to_string())
+    print(tab.groupby(level="treatment").mean().round(3).to_string())
     return tab
 
 
 def main():
-    per_sample_pipeline()
+    import argparse
+
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--atlas-only", action="store_true",
+                    help="skip per-sample clustering; rebuild the atlas from the "
+                         "existing 03_domains/*_domains.h5ad objects")
+    args = ap.parse_args()
+    if not args.atlas_only:
+        per_sample_pipeline()
     ad = merged_atlas()
     domain_composition_table(ad)
 
