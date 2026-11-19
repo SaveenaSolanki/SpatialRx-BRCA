@@ -40,6 +40,7 @@ from scipy.sparse import issparse
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from srx import PROC_DIR, FIG_DIR, TABLE_DIR, SAMPLE_META, PROGRAMS, MARKERS
+from spatialrx.proteins import protein_to_symbol, isotype as _isotype
 from spatialrx.norm import clr_protein, nnls_proportions
 
 sc.settings.verbosity = 0
@@ -121,18 +122,18 @@ def process_sample(specimen):
 
     # ---- C2. Protein NNLS deconvolution ----
     # drop isotypes; map antibody names (PTPRC-1/-2 -> PTPRC)
-    use = [p for p in pnames if p not in ISOTYPES]
+    use = [p for p in pnames if not _isotype(p)]
     # reverse map: gene symbol -> lineages (from PROTEIN_SIGNATURE lineage->genes)
     gene_to_lineage = {}
     for ln, gs in PROTEIN_SIGNATURE.items():
         for gn in gs:
             gene_to_lineage.setdefault(gn, []).append(ln)
-    sig_rows = {p.split("-")[0]: gene_to_lineage.get(p.split("-")[0], [])
+    sig_rows = {protein_to_symbol(p): gene_to_lineage.get(protein_to_symbol(p), [])
                 for p in use}
     lineages_prot = sorted({ln for v in sig_rows.values() for ln in v})
     S_p = np.zeros((len(use), len(lineages_prot)))
     for i, p in enumerate(use):
-        gn = p.split("-")[0]
+        gn = protein_to_symbol(p)
         for ln in sig_rows.get(gn, []):
             S_p[i, lineages_prot.index(ln)] = 1.0
     # remove any lineage columns with no markers

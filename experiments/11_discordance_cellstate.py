@@ -31,6 +31,7 @@ from scipy import stats
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from srx import PROC_DIR, FIG_DIR, TABLE_DIR, SAMPLE_META, PAIRED
+from spatialrx.proteins import antibody_index
 
 sc.settings.verbosity = 0
 os.makedirs(FIG_DIR, exist_ok=True)
@@ -78,7 +79,7 @@ def main():
         ad = sc.read_h5ad(os.path.join(ECO, f"{spec}_ecosystem.h5ad"))
         counts = sc.read_h5ad(os.path.join(ING, f"{spec}.h5ad"))[ad.obs_names].copy()
         pnames = list(ad.uns["protein_var"].index)
-        pidx = {p.split("-")[0]: i for i, p in enumerate(pnames)}
+        pidx = antibody_index(pnames)
         prot = ad.obsm["protein_clr"]
         edist = edge_exposure(ad)
         # ensure programs: M2 and exhaustion (may not exist in obs)
@@ -165,7 +166,7 @@ def main():
             ad = sc.read_h5ad(os.path.join(ECO, f"{spec}_ecosystem.h5ad"))
             counts = sc.read_h5ad(os.path.join(ING, f"{spec}.h5ad"))[ad.obs_names].copy()
             pnames = list(ad.uns["protein_var"].index)
-            pidx = {p.split("-")[0]: i for i, p in enumerate(pnames)}
+            pidx = antibody_index(pnames)
             if met not in pidx:
                 continue
             rna = rna_cpm(counts, met)

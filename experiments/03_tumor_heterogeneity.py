@@ -62,7 +62,16 @@ def cluster_zscore_table(ad, cluster_key="leiden"):
     X = ad.raw[:, genes].X
     if hasattr(X, "toarray"):
         X = X.toarray()
-    X = np.log1p(X / X.sum(axis=1, keepdims=True) * 1e4)
+    rowsum = X.sum(axis=1)
+    zero = rowsum == 0
+    if zero.any():
+        # marker-free spots cannot be normalised; keep them NaN (excluded from the
+        # cluster means, exactly as before) but report the count instead of letting
+        # numpy emit a silent RuntimeWarning (ISSUE-003).
+        print(f"[m3] {sample}: {int(zero.sum())} spots have zero lineage-marker counts "
+              f"(excluded from domain z-scores)")
+    with np.errstate(invalid="ignore", divide="ignore"):
+        X = np.log1p(X / np.where(zero, np.nan, rowsum)[:, None] * 1e4)
     df = pd.DataFrame(X, index=ad.obs_names, columns=genes)
     cl = ad.obs[cluster_key].astype(str)
     mean = df.groupby(cl).mean()

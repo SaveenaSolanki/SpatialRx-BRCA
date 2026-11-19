@@ -53,6 +53,10 @@ pip install torch --index-url https://download.pytorch.org/whl/cpu   # CPU is en
 | 10 | `10_lr_analysis.py` | ligand–receptor scores at tumour–immune interfaces, pre vs post | `10_*` |
 | 11 | `11_discordance_cellstate.py` | discordance hotspots vs cell states + edge-artifact control | `11_*` |
 | 12 | `12_subsampling.py` | size-matched subsampling of post sections (random + contiguous core) | `12_*` |
+| 09 | `09_citegeist_step2.py` | scripted CITEgeist Step-2 QP deconvolution (needs cuOPT/GPU) + NNLS comparison | `09_*` |
+
+Tests & CI: `python -m pytest tests/ -q` (74 tests); GitHub Actions workflow in
+`.github/workflows/tests.yml` runs the suite on every push.
 
 Reproduce end-to-end:
 
@@ -94,8 +98,9 @@ conda run -n spatialrx python experiments/08_ai.py
 5. **Multimodal embeddings**: adding protein + spatial graph strongly increases
    embedding spatial coherence (mean Moran's I of dims 0.28 → 0.66; partly by
    construction) and marginally silhouette, but does **not** improve biological
-   niche separation (AUROC 0.765 → 0.752) — an honest negative for the
-   "more modalities = better niches" hypothesis at this scale.
+   niche separation. Under a **leakage-free, patient-held-out benchmark**, plain RNA PCA is the
+   best representation (AUROC 0.704 vs 0.674 RNA+protein, 0.633 graph-augmented) — an honest
+   negative for the "more modalities = better niches" hypothesis at this scale.
 
 ## Documented deviations & limitations
 

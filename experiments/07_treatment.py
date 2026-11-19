@@ -81,7 +81,7 @@ def per_sample_metrics(ad, specimen):
     if "ESR1" in counts.var_names and tum_mask.sum() > 5:
         X = counts[:, "ESR1"].X
         X = X.toarray() if hasattr(X, "toarray") else np.asarray(X)
-        n = np.asarray(counts.obs["n_counts"]).ravel()
+        n = np.asarray(counts.obs["n_counts"]).ravel().astype(np.float64)
         n[n == 0] = 1
         cpm = np.log1p(X.ravel() / n * 1e6)
         m["ESR1_tumour_cpm"] = cpm[tum_mask].mean()

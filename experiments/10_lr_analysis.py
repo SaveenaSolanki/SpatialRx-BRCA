@@ -68,7 +68,7 @@ def log_cpm(counts_ad, gene):
         return None
     X = counts_ad[:, gene].X
     X = X.toarray() if hasattr(X, "toarray") else np.asarray(X)
-    n = np.asarray(counts_ad.obs["n_counts"]).ravel()
+    n = np.asarray(counts_ad.obs["n_counts"]).ravel().astype(np.float64)
     n[n == 0] = 1
     return np.log1p(X.ravel() / n * 1e6)
 

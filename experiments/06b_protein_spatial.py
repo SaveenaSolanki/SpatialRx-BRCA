@@ -21,6 +21,7 @@ import squidpy as sq
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from srx import PROC_DIR, FIG_DIR, TABLE_DIR, SAMPLE_META
+from spatialrx.proteins import protein_to_symbol
 
 sc.settings.verbosity = 0
 os.makedirs(FIG_DIR, exist_ok=True)
@@ -47,7 +48,7 @@ def main():
                                      copy=True, n_jobs=8)
         mor["protein"] = mor.index
         mor["sample"] = m.specimen
-        mor["feature"] = [p.split("-")[0] for p in mor.index]
+        mor["feature"] = [protein_to_symbol(p) for p in mor.index]
         rows.append(mor)
         # authors' table
         auth = pd.read_csv(os.path.join(PROC_DIR, "00_ingest",

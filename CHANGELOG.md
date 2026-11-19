@@ -56,3 +56,18 @@
     0.0 was unreproducible; BH-adjusted 0.81 across all 26 LR pairs).
   * C15: isotype-factor robustness claim removed — only per-spot CLR is implemented
     (the helper is dead code); no isotype-normalised sensitivity analysis was run.
+
+## 2026-08-26 (later) — Stage B: fixes, CI, scripted CITEgeist
+- ISSUE-001 RESOLVED: new `spatialrx/proteins.py` (isoform/dash-safe antibody→symbol mapping) wired
+  into 05/06/06b/11; 11 regression tests. Residual is data, not code: this panel has **no HLA genes
+  at all** (0 HLA* in GEX), so 26 pairs is the maximum. Fix did change 05: prot_myeloid +0.031.
+- ISSUE-002 RESOLVED (dead `clr_by_factor` deleted); ISSUE-003 RESOLVED (guarded division +
+  explicit count, results unchanged); ISSUE-005 RESOLVED (`experiments/09_citegeist_step2.py`,
+  reproduces epithelial r=0.761); ISSUE-006 remains OPEN (data-limited).
+- `srx.py`: opts in to `anndata.settings.allow_write_nullable_strings` (pandas-3 h5ad writes) and
+  `PROTEIN_LINEAGE` corrected to the real 31-feature panel.
+- Affected chain re-run (05→06→06b→07→10→11→12): all downstream results identical to ≤6.7e-07.
+- Report Stage B: Module 8 rewritten to the leakage-free Gate-4 benchmark (RNA PCA best, AUROC
+  0.7035); new §7b "why remaining gaps are data-limited"; new §9 revision history.
+- CI added: `.github/workflows/tests.yml` (74 tests, package/CLI smoke).
+- docs/07_STAGE_B_REPORT_REVISION.md records every change and its evidence.

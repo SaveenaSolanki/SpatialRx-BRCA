@@ -43,9 +43,12 @@ published package ships no StarDist weights (`CITEgeist/model/` checked), and GE
 no segmentation artifacts. Full pipeline needs a pre-trained StarDist model + the
 repository's `run_single_cell_assignment.py`; not feasible to complete faithfully here.
 
-**Done — CITEgeist Step 2 (spot-level proportions) ran with the study's own solver:**
-GPU QP (cuOPT 26.08.00; Barrier solver, ~1.7 s/solve) on P4-S2, 12 cell types.
-`data/processed/09_citegeist/P4-S2_cell_prop_finetuned_results.csv`.
+**Done — CITEgeist Step 2 (spot-level proportions) runs with the study's own solver.**
+Now scripted and re-runnable: `experiments/09_citegeist_step2.py --specimen HCC22-088-P4-S2`
+(stages the SpaceRanger layout from the GEO files, runs the GPU QP — cuOPT Barrier solver,
+~1.7 s/solve — and writes proportions, an NNLS comparison and a JSON run record).
+Outputs: `data/processed/09_citegeist/P4-S2_cell_prop_finetuned_results.csv`,
+`outputs/tables/09_citegeist_vs_nnls.csv`. Re-running reproduces the numbers below exactly.
 
 **Validation of our transparent NNLS against the study's own tool (P4-S2, 4,658 spots):**
 
@@ -130,7 +133,7 @@ estrogen program) are compatible with noise under size-matching. Figure `12_subs
 | Study | Status | Key files |
 |---|---|---|
 | Cohort scan + power | done (no exact-match public cohort; SMART/ImmunoADAPT candidates) | this report |
-| CITEgeist Step 2 validation | done (r=0.76 tumour lineage) | `logs/cg_step2.log`, `09_citegeist/` |
+| CITEgeist Step 2 validation | done + **scripted** (r=0.76 tumour lineage) | `experiments/09_citegeist_step2.py`, `09_citegeist/`, `outputs/tables/09_citegeist_vs_nnls.csv` |
 | CITEgeist Step 3 single-cell | blocked (no StarDist weights/segmentation artifacts) | `logs/citegeist_setup.log` |
 | Discordance × cell state | done (not edge-driven; niche-structured) | `11_*` |
 | LR at interfaces | done (MIF/MDK top; CXCL12–CXCR4 ↓; CSF1/TGFB ↑) | `10_*` |

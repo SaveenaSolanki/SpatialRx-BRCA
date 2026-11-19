@@ -28,6 +28,7 @@ from scipy import stats
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from srx import PROC_DIR, FIG_DIR, TABLE_DIR, SAMPLE_META
+from spatialrx.proteins import antibody_index, protein_to_symbol
 
 sc.settings.verbosity = 0
 os.makedirs(FIG_DIR, exist_ok=True)
@@ -52,27 +53,9 @@ def rna_cpm(ad_counts, gene):
         return None
     X = ad_counts[:, gene].X
     X = X.toarray() if hasattr(X, "toarray") else np.asarray(X)
-    n = np.asarray(ad_counts.obs["n_counts"]).ravel()
+    n = np.asarray(ad_counts.obs["n_counts"]).ravel().astype(np.float64)
     n[n == 0] = 1
     return np.log1p(X.ravel() / n * 1e6)
-
-
-def clr_by_factor(prot_counts, factors, pnames):
-    """Unused alternative protein normalisation using isotype factors.
-
-    NOTE: never called anywhere in the pipeline. A per-spot multiplicative factor
-    cancels under CLR, so this is not a valid robustness check; kept only for
-    provenance.
-    """
-    prot = np.asarray(prot_counts, float)
-    f = np.asarray(factors[factors["barcode"].isin([])], float)  # placeholder
-    fac = np.ones(prot.shape[0])
-    if factors is not None and len(factors) == prot.shape[0]:
-        fac = factors["normalization_factor"].to_numpy(float)
-    prot = prot * fac[:, None]
-    prot = prot + 1.0
-    gmean = np.exp(np.log(prot).mean(axis=1, keepdims=True))
-    return np.log(prot / gmean), fac
 
 
 def sample_agreement(specimen):
@@ -81,7 +64,7 @@ def sample_agreement(specimen):
     counts = counts[ad.obs_names].copy()
     prot = ad.obsm["protein_clr"] if "protein_clr" in ad.obsm else None
     pnames = list(ad.uns["protein_var"].index)
-    pidx = {n.split("-")[0]: i for i, n in enumerate(pnames)}  # first isoform
+    pidx = antibody_index(pnames)  # isoform-safe (ISSUE-001: HLA-DRA)
     rows, disc = [], {}
     for gene, ptarget in PAIRS.items():
         if ptarget not in pidx:
@@ -164,7 +147,7 @@ def main():
     counts = sc.read_h5ad(os.path.join(PROC_DIR, "00_ingest",
                                        "HCC22-088-P4-S2.h5ad"))[ad.obs_names].copy()
     prot = ad.obsm["protein_clr"]
-    pidx = {n.split("-")[0]: i for i, n in enumerate(ad.uns["protein_var"].index)}
+    pidx = antibody_index(list(ad.uns["protein_var"].index))
     fig, axes = plt.subplots(1, 3, figsize=(13, 4))
     for ax, gene in zip(axes, ["EPCAM", "CD68", "CD3E"]):
         rna = rna_cpm(counts, gene)

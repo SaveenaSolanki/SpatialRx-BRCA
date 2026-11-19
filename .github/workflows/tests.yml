@@ -1,0 +1,47 @@
+name: tests
+
+on:
+  push:
+    branches: ["main", "fix/repro-correctness-v1"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pytest:
+    name: pytest (py3.11)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements.lock
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # core stack: pinned to the canonical reproduction env (numpy<2.2 keeps numba/scanpy happy)
+          pip install "numpy<2.2" "pandas<3" "scipy<1.16" scikit-learn anndata pytest pytest-cov
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          # lazily imported by spatialrx.benchmark (Module-08 benchmark)
+          pip install scanpy squidpy
+          pip install -e .
+
+      - name: Show environment
+        run: |
+          python -c "import numpy, pandas, scipy, sklearn, anndata; print('numpy', numpy.__version__, '| pandas', pandas.__version__)"
+
+      - name: Run test suite
+        run: python -m pytest tests/ -q --cov=spatialrx --cov-report=term-missing --cov-fail-under=0
+
+      - name: Verify package imports and CLI
+        run: |
+          python -c "import spatialrx; print('spatialrx OK')"
+          python -m spatialrx --help > /dev/null && echo "CLI OK"

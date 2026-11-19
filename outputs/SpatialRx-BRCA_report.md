@@ -10,9 +10,11 @@ patients, tumour/stromal gene programs become *more spatially structured* after 
 structure decreases (0.12→0.07); RNA and protein measurements agree only weakly at spot
 level (r≈0.02–0.19) *but their disagreement is itself spatially organised* (Moran's I ≈
 0.24–0.36, positive in ~all samples); and a small multimodal RNA+protein+graph model
-increases embedding spatial coherence (0.28→0.66) without improving biological niche
-separation (AUROC 0.765→0.752) — an honest null for the "more modalities = better niches"
-hypothesis at this cohort size.
+increases embedding spatial coherence (0.28→0.66, a construction effect) without improving
+biological niche separation — and under a **leakage-free, patient-held-out** benchmark plain
+RNA PCA is the best representation (AUROC 0.704 vs 0.674 for RNA+protein and 0.633 for
+graph-augmented embeddings), i.e. an honest null for the "more modalities = better niches"
+hypothesis at this cohort size (Gate 4, §2 Module 8).
 
 ---
 
@@ -105,7 +107,7 @@ Figures: `05_program_maps_P4S2.png`, `05_cellstate_maps_P4S2.png`,
 `05_cellstate_prot_maps_P4S2.png`.
 
 ### Module 6 — Multi-omics: do RNA and protein tell the same story?
-Per-spot correlations (RNA log-CPM vs CLR protein) for **26** analysable matched gene/antibody pairs (27 configured; `HLA-DRA` is unmatched because its protein feature name has no `-1` suffix).
+Per-spot correlations (RNA log-CPM vs CLR protein) for **26** analysable matched gene/antibody pairs (27 configured). `HLA-DRA` cannot be analysed for two independent reasons: the antibody feature carries no `-1` suffix (a parser defect, fixed — ISSUE-001), **and** this dataset's Visium probe set contains no MHC-region genes at all (0 `HLA*` features in GEX), so no RNA counterpart exists.
 
 - **Agreement is modest and marker-dependent** (median Pearson r across 14 sections;
   `06_rna_protein_agreement.csv`): ACTA2 0.19, VIM 0.14, EPCAM 0.12, BCL2 0.11, CD68 0.10,
@@ -151,25 +153,42 @@ per-spot metrics. The consistent *spatial-structuring* trends are hypothesis-gen
 confirmatory, and the tumour-immune-contact change rests on n=3 pairs.
 
 ### Module 8 — Multimodal representation (RNA ± protein ± spatial graph)
-Small self-supervised autoencoders (32-d embeddings, MSE; GCN variant: one graph-conv
-pre-layer on row-normalised grid adjacency). Configs: RNA-only (MLP), RNA+protein (MLP),
-RNA+protein+graph (GCN). Metrics per sample, averaged over 14 sections (`08_embedding_metrics.csv`):
 
-| Metric | RNA-only | RNA+protein | +graph | Δ (graph − RNA) |
-|---|---|---|---|---|
-| Silhouette vs compartments | 0.034 ± 0.097 | 0.032 ± 0.090 | 0.064 ± 0.122 | +0.030 (wins 11/14) |
-| Spatial coherence (mean Moran's I of dims) | 0.281 ± 0.146 | 0.277 ± 0.141 | 0.656 ± 0.243 | +0.375 (wins 14/14) |
-| Biological niche separation (AUROC of program-high spots) | 0.765 ± 0.045 | 0.766 ± 0.045 | 0.752 ± 0.040 | −0.013 (wins 2/14) |
+**Superseded by a leakage-free benchmark (Gate 4).** The original script fit a logistic probe
+and scored it on the *same* spots, so its "niche separation" number could not support a
+generalisation claim (ISSUE-004). `experiments/08_ai.py` is preserved as historical evidence;
+the authoritative evaluation lives in `benchmark/` (`docs/06_GATE4_REPORT.md`).
 
-Interpretation: adding the spatial graph massively increases embedding *coherence* — partly
-by construction (neighbours are smoothed together), so Moran's I is a manipulation check, not
-an independent win. Critically, **neither protein nor spatial context improved biological
-niche separation** in this cohort (AUROC unchanged/decreased), and silhouette gain is small.
-This is the honest, quantitative answer to the project's AI question: at this cohort size,
-RNA alone already carries most of the niche information captured by these simple models.
-Figures: `08_embedding_metrics.png`, `08_embedding_umap_P4S2.png`.
+Design: leave-one-patient-out (6 folds, primary) and leave-one-section-out (14 folds,
+secondary). HVG selection, scaling, PCA, protein scaling and every model are fit on training
+folds only; the probe's regularisation is chosen by inner leave-one-training-patient-out; all
+methods share identical partitions; the spatial graph never crosses sections.
 
----
+Held-out AUROC (mean over patients, higher better):
+
+| Method | Patient-held-out | Section-held-out |
+|---|---|---|
+| **PCA (RNA, linear baseline)** | **0.7035** | **0.7082** |
+| smoothing | 0.6862 | 0.6915 |
+| random projection | 0.6821 | 0.6852 |
+| RNA autoencoder | 0.6763 | 0.6792 |
+| RNA+protein autoencoder | 0.6745 | 0.6745 |
+| graph autoencoder | 0.6334 | 0.6325 |
+| graph autoencoder, randomised graph | 0.5053 | 0.5008 |
+
+- Every learned method is worse than RNA PCA in all 6 patients (exact p = 2/64 = 0.031, BH-significant).
+- Protein adds nothing: RNA+protein − RNA AE = −0.0018 (p = 0.25).
+- The spatial graph **hurts** the biological metric: graph − RNA AE = −0.043 (p = 0.031).
+- Spatial coherence (Moran's I of embeddings): graph AE 0.525 ≫ PCA 0.273 — but the
+  degree-preserving randomised-graph twin scores 0.001, so that "win" is mechanical.
+- Controls: label-shuffle AUROC 0.503/0.493 (CI includes 0.5); randomised graph ≈ 0.50.
+
+**Conclusion (strengthened, not weakened, by the audit):** at this cohort size neither the
+protein layer, the spatial graph, nor a non-linear autoencoder improves *transferable* niche
+separation over linear RNA PCA. The earlier transductive numbers (`0.765 → 0.752`) are
+retained only as historical evidence and must not be cited as a performance comparison.
+Figures: `08_embedding_metrics.png`, `08_embedding_umap_P4S2.png` (transductive, legacy);
+benchmark tables under `benchmark/`.
 
 ## 3. What the project teaches (conceptual map)
 
@@ -241,6 +260,24 @@ All four recommended follow-ups were run on this same project; full report:
    subsampling of post sections (random: 0/200 iterations positive; contiguous-core ≈80%
    negative) — the strongest treatment signal in the cohort.
 
+## 7b. Why the remaining gaps are *data*-limited, not code-limited
+
+Everything fixable in software has now been fixed (see §9). What remains cannot be closed by
+better analysis of GSE289326 — it needs measurements that do not exist:
+
+| Remaining gap | Why code cannot close it | What would |
+|---|---|---|
+| No external validation (ISSUE-006) | Every number is internal to one 6-patient cohort. The authors' `spatial_enrichment.csv` is a *metric* check, not an independent cohort. | A second matched pre/post spatial cohort. No public ER+ pET Visium+antibody study exists (searched 2026-08-26); nearest powered resource is GSE331245 (SMART: n=89, TNBC, chemo, GeoMx) — different subtype, therapy and assay. |
+| n = 6, contact n = 3 (Tier-4 power) | The trial's surgical de-escalation design produced only six patients who reached surgery; the number of *patients* is a property of the cohort, not of the analysis. | ≥13–26 matched pairs (power table in `SpatialRx-BRCA_next_steps.md` §1). |
+| Pre-biopsy vs post-resection confound | Section size/geometry differs by design; Module 12 mitigates it but cannot remove it. | Protocol-matched sampling (same needle-core strategy pre and post). |
+| Discordance ≠ post-transcriptional regulation | Spot-level correlation cannot distinguish mRNA–protein decoupling from antibody accessibility, secretion or turnover; the causal test needs *per-cell* assignment plus a translation readout. | CITEgeist Step-3 single-cell assignment (needs StarDist nuclei segmentation; no weights ship with the package and GEO has no nuclei artifacts) **and** orthogonal validation (Ribo-seq/polysome or IHC of the discordant regions). |
+| Protein panel is fixed at 30 targets | The antibody panel was chosen at assay design; no additional proteins can be interrogated in these sections. | A new assay (e.g. Visium HD + a different panel, or CODEX/IMC). |
+| Response-stratified remodelling | Per-patient responder status is not published; without outcome labels no association with response can be tested. | Access to trial-level clinical outcomes under a data-use agreement. |
+| Deconvolution/reference dependence | NNLS uses curated markers; CITEgeist QP was validated on **one** section (r=0.76 for the tumour lineage). | Reference-free single-cell assignment across all 14 sections (same blocker as above). |
+
+In short: the open *scientific* gaps are limits of this dataset's size, design, assay panel and
+provenance — not of the code, which is now tested, versioned and reproducible.
+
 ## Appendix — Additional reproducibility notes
 
 - Installing `citegeist`+`cuopt-cu12` for study 2 bumped numpy/pandas in `spatialrx`;
@@ -259,3 +296,12 @@ All four recommended follow-ups were run on this same project; full report:
    treatment tests.
 5. Multimodal embeddings with contrastive spatial objectives, evaluated on independent
    cohorts before claiming niche-discovery gains over RNA-only baselines.
+
+## 9. Revision history (audit trail)
+
+| Revision | What changed | Evidence |
+|---|---|---|
+| Gate 1–3 (`4bcd58f`, `5e6f7dc`, `c408854`) | pinned environment; `spatialrx` toolkit + tests; corrected exact permutation p-values and BH step-up; repaired merged-atlas sample keys/annotation | `docs/04_REMEDIATION_GATE_REPORT.md` |
+| Stage A (`1d7d2f7`) | four claims reconciled to artifacts: 26 (not 27) analysable RNA–protein pairs; 30–35/35 (not 34–35) structured proteins; 24 (not 22) paired metrics; LR p = 0.125/BH 0.81 (not "0.000") | `docs/05_CLAIM_RECONCILIATION_STAGE_A.md` |
+| Gate 4 (`2bbc4e7`) | Module-08 transductive metric replaced by a leakage-free, patient-held-out benchmark (§2 Module 8) | `docs/06_GATE4_REPORT.md`, `benchmark/` |
+| Stage B (this revision) | §2 Module 8 rewritten to the held-out results; HLA-DRA explained (parser bug **and** absent RNA probe); "22 metrics"/protein-count claims confirmed corrected; this section added | `docs/07_STAGE_B_REPORT_REVISION.md` |

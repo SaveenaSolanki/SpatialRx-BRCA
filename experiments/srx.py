@@ -8,6 +8,18 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+# ---------------------------------------------------------------------------
+# pandas>=3 writes Arrow-backed string columns, which anndata<0.11 refuses by
+# default; opt in once here because every pipeline script imports this module.
+# (R1 mitigation: shared entry point rather than per-script boilerplate.)
+# ---------------------------------------------------------------------------
+try:  # pragma: no cover - environment shim
+    import anndata as _ad
+
+    _ad.settings.allow_write_nullable_strings = True
+except Exception:  # pragma: no cover
+    pass
+
 RAW_DIR = "data/raw"
 EXTRACT_DIR = "data/raw/extracted"
 PROC_DIR = "data/processed"
@@ -82,25 +94,27 @@ MARKERS = {
     "cytotoxicity": ["GZMB", "GZMA", "PRF1", "NKG7", "GNLY"],
 }
 
-# Protein panel (10x Visium CytAssist Immuno-Oncology / human protein panel):
-# marker names appear in features with "-1" suffix; map feature -> lineage.
+# Protein panel actually present in GSE289326 (10x Visium CytAssist
+# Immuno-Oncology): 31 antibody features = 30 distinct targets (PTPRC has two
+# isoforms, PTPRC-1/-2) + 4 isotype controls = 35 features total.
+# Feature names carry a "-<n>" suffix except HLA-DRA. NOTE: reference metadata
+# only; the pipeline derives symbols via spatialrx.proteins.antibody_index.
 PROTEIN_LINEAGE = {
-    "CD3-1": "T cells", "CD4-1": "CD4 T", "CD8-1": "CD8 T", "CD45-1": "Leukocytes",
-    "CD45RA-1": "Naive T", "CD45RO-1": "Memory T", "CD20-1": "B cells", "CD19-1": "B cells",
-    "CD68-1": "Myeloid/Macrophage", "CD11c-1": "Dendritic", "CD14-1": "Monocyte",
-    "CD16-1": "NK/Mono", "CD56-1": "NK", "CD163-1": "Macrophage M2",
-    "EPCAM-1": "Epithelial/tumour", "PanCK-1": "Epithelial/tumour",
-    "CD31-1": "Endothelial", "FAP-1": "CAF/fibroblast", "SMA-1": "myofibroblast",
-    "Ki67-1": "Proliferation", "PD-L1-1": "Immune checkpoint",
-    "CD40-1": "APC", "HLA-DR-1": "APC/activated", "CD25-1": "Treg/activated",
-    "CD27-1": "T/NK", "CD38-1": "Plasma/activated", "CD44-1": "broad",
-    "CD49f-1": "epithelial/stem", "CD57-1": "NK/senescent", "CD127-1": "Naive T",
-    "CD69-1": "activated", "CCR7-1": "naive T", "CXCR3-1": "Th1",
-    "TIM3-1": "exhausted T", "LAG3-1": "exhausted T",
-    "PD-1-1": "exhausted T", "CTLA4-1": "Treg/exhausted",
-    "Vimentin-1": "mesenchymal", "EGFR-1": "tumour", "HER2-1": "tumour",
-    "ER-alpha-1": "tumour ER", "PR-1": "tumour PR", "Ki67_AB-1": "proliferation",
+    "ACTA2-1": "Stroma/myofibroblast", "VIM-1": "Mesenchymal",
+    "PECAM1-1": "Endothelial",
+    "EPCAM-1": "Epithelial/tumour", "KRT5-1": "Basal epithelial/tumour",
+    "CD3E-1": "T cells", "CD4-1": "CD4 T", "CD8A-1": "CD8 T",
+    "CD19-1": "B cells", "MS4A1-1": "B cells", "PAX5-1": "B cells",
+    "PTPRC-1": "Leukocytes (CD45)", "PTPRC-2": "Leukocytes (CD45 isoform)",
+    "CR2-1": "B cells/follicular dendritic", "SDC1-1": "Plasma cells",
+    "CD68-1": "Macrophage", "CD163-1": "Macrophage (M2-like)", "CD14-1": "Monocyte",
+    "ITGAM-1": "Myeloid", "ITGAX-1": "Dendritic/myeloid", "HLA-DRA": "APC (MHC-II)",
+    "FCGR3A-1": "NK/monocyte", "CEACAM8-1": "Neutrophil",
+    "CCR7-1": "Naive T/DC", "CD27-1": "T/NK", "CXCR5-1": "B/Tfh",
+    "PDCD1-1": "Exhausted T", "CD274-1": "Checkpoint (PD-L1)",
+    "CD40-1": "APC/T", "BCL2-1": "Survival", "PCNA-1": "Proliferation",
 }
+PROTEIN_ISOTYPES = ("mouse_IgG1k", "mouse_IgG2a", "mouse_IgG2bk", "rat_IgG2a")
 
 # Gene programs used by Module 5 (name -> genes) — curated, MSigDB-inspired
 PROGRAMS = {
